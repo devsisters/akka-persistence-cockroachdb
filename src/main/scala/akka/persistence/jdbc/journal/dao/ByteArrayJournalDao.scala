@@ -100,6 +100,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates {
       serializeTry <- serializedTries
       row <- serializeTry.getOrElse(Seq.empty)
     } yield row
+
     def resultWhenWriteComplete =
       if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
 
@@ -139,9 +140,10 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates {
   private def highestMarkedSequenceNr(persistenceId: String) =
     queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result.headOption
 
-  override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = for {
-    maybeHighestSeqNo <- db.run(queries.highestSequenceNrForPersistenceId(persistenceId).result.headOption)
-  } yield maybeHighestSeqNo.getOrElse(0L)
+  override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
+    for {
+      maybeHighestSeqNo <- db.run(queries.highestSequenceNrForPersistenceId(persistenceId).result.headOption)
+    } yield maybeHighestSeqNo.getOrElse(0L)
 
   override def messages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long): Source[Try[PersistentRepr], NotUsed] =
     Source.fromPublisher(db.stream(queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result))
